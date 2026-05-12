@@ -1,0 +1,7 @@
+# Tuesday AI Agent — Python Dependencies
+# Install with: pip install -r requirements.txt
+
+python-dotenv>=1.0.0       # Load .env files
+openai>=1.30.0             # OpenAI API client
+requests>=2.31.0           # HTTP requests
+rich>=13.7.0               # Beautiful terminal output
