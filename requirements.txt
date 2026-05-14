@@ -2,6 +2,7 @@
 # Install with: pip install -r requirements.txt
 
 python-dotenv>=1.0.0       # Load .env files
-openai>=1.30.0             # OpenAI API client
-requests>=2.31.0           # HTTP requests
+google-genai>=2.2.0        # Google Gemini SDK (new client-based API)
+groq>=1.2.0                # Groq API client (lightning-fast inference)
+requests>=2.31.0           # HTTP requests (used for local Ollama/Qwen calls)
 rich>=13.7.0               # Beautiful terminal output
