@@ -6,3 +6,4 @@ google-genai>=2.2.0        # Google Gemini SDK (new client-based API)
 groq>=1.2.0                # Groq API client (lightning-fast inference)
 requests>=2.31.0           # HTTP requests (used for local Ollama/Qwen calls)
 rich>=13.7.0               # Beautiful terminal output
+ddgs>=9.0.0                # Free web search via DuckDuckGo (formerly duckduckgo-search)

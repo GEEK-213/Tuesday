@@ -11,6 +11,7 @@ from brain.llm_client import LLMClient
 from brain.memory import Memory
 from config.settings import GEMINI_KEYS, DEFAULT_LLM_PROVIDER, DEFAULT_MODEL
 from tools.git_inspector import get_latest_commit
+from tools.web_search import search_web
 
 
 def load_system_prompt() -> str:
@@ -30,8 +31,8 @@ def main():
     system_prompt = load_system_prompt()
     print(f"✅ System prompt loaded ({len(system_prompt)} characters)")
 
-    memory = Memory(max_history=50)
-    print("✅ Memory initialized")
+    memory = Memory(max_history=50, filepath="data/memory.json")
+    print(f"✅ Memory initialized ({len(memory.get_context())} messages recalled from disk)")
 
     print()
     print("Status: Online")
@@ -81,6 +82,31 @@ def main():
                 second_prompt = "I executed the tool. Read the TOOL OUTPUT above and answer the user naturally."
                 response = llm_client.chat(
                     message=second_prompt,
+                    history=history,
+                    system_prompt=system_prompt,
+                )
+
+            # Web Search ReAct loop (max 2 attempts for query reformulation)
+            search_attempts = 0
+            while "[SEARCH_WEB:" in response and search_attempts < 2:
+                search_attempts += 1
+
+                start = response.index("[SEARCH_WEB:") + len("[SEARCH_WEB:")
+                end = response.index("]", start)
+                query = response[start:end].strip()
+
+                print(f"🌐 Tuesday is searching the web for: {query}...")
+                if search_attempts == 2:
+                    print("🔄 Retry — reformulated query.")
+
+                tool_output = search_web(query)
+
+                memory.add("user", f"TOOL OUTPUT:\n{tool_output}")
+
+                history = memory.get_context()
+                followup = "I executed the web search tool. Read the TOOL OUTPUT above and answer the user naturally."
+                response = llm_client.chat(
+                    message=followup,
                     history=history,
                     system_prompt=system_prompt,
                 )
