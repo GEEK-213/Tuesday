@@ -12,6 +12,7 @@ from brain.memory import Memory
 from config.settings import GEMINI_KEYS, DEFAULT_LLM_PROVIDER, DEFAULT_MODEL
 from tools.git_inspector import get_latest_commit
 from tools.web_search import search_web
+from tools.file_writer import write_file
 
 
 def load_system_prompt() -> str:
@@ -110,6 +111,31 @@ def main():
                     history=history,
                     system_prompt=system_prompt,
                 )
+
+            # File Writer ReAct loop
+            if "[WRITE_FILE:" in response:
+                start = response.index("[WRITE_FILE:") + len("[WRITE_FILE:")
+                payload = response[start:]
+                
+                if "|||" in payload:
+                    filename, content = payload.split("|||", 1)
+                    filename = filename.strip()
+                    content = content.strip()
+                    if content.endswith("]"):
+                        content = content[:-1].strip()
+                    
+                    print(f"✍️ Tuesday is writing to workspace/{filename}...")
+                    
+                    tool_output = write_file(filename, content)
+                    
+                    memory.add("user", f"TOOL OUTPUT:\n{tool_output}")
+                    history = memory.get_context()
+                    followup = "I executed the tool. Read the TOOL OUTPUT above and confirm to the user naturally."
+                    response = llm_client.chat(
+                        message=followup,
+                        history=history,
+                        system_prompt=system_prompt,
+                    )
 
             # Final answer
             memory.add("assistant", response)
