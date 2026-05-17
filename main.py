@@ -2,6 +2,8 @@
 
 import os
 import sys
+import datetime
+import re
 
 os.environ["PYTHONUTF8"] = "1"
 if sys.stdout.encoding != "utf-8":
@@ -13,13 +15,17 @@ from config.settings import GEMINI_KEYS, DEFAULT_LLM_PROVIDER, DEFAULT_MODEL
 from tools.git_inspector import get_latest_commit
 from tools.web_search import search_web
 from tools.file_writer import write_file
+from tools.file_reader import read_file
 
 
 def load_system_prompt() -> str:
-    """Read Tuesday's system prompt from disk."""
+    """Read Tuesday's system prompt from disk and inject current time."""
     prompt_path = os.path.join(os.path.dirname(__file__), "brain", "prompts", "system_prompt.txt")
     with open(prompt_path, "r", encoding="utf-8") as f:
-        return f.read().strip()
+        raw_prompt = f.read().strip()
+        
+    current_time = datetime.datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
+    return f"{raw_prompt}\n\n[SYSTEM INFO]\nThe current date and time is: {current_time}"
 
 
 def main():
@@ -112,30 +118,50 @@ def main():
                     system_prompt=system_prompt,
                 )
 
-            # File Writer ReAct loop
-            if "[WRITE_FILE:" in response:
-                start = response.index("[WRITE_FILE:") + len("[WRITE_FILE:")
-                payload = response[start:]
+            # File Writer ReAct loop (regex-based robust parsing)
+            write_match = re.search(
+                r"\[WRITE_FILE:\s*(.+?)\s*\|\|\|\s*(.*)\]$",
+                response,
+                re.DOTALL,
+            )
+            if write_match:
+                filename = write_match.group(1).strip()
+                content = write_match.group(2).strip()
+
+                # Safety: strip accidental 'workspace/' prefix from filename
+                filename = re.sub(r"^workspace[\\/]", "", filename)
+
+                print(f"✍️ Tuesday is writing to workspace/{filename}...")
+
+                tool_output = write_file(filename, content)
+
+                memory.add("user", f"TOOL OUTPUT:\n{tool_output}")
+                history = memory.get_context()
+                followup = "I executed the tool. Read the TOOL OUTPUT above and confirm to the user naturally."
+                response = llm_client.chat(
+                    message=followup,
+                    history=history,
+                    system_prompt=system_prompt,
+                )
+
+            # File Reader ReAct loop
+            if "[READ_FILE:" in response:
+                start = response.index("[READ_FILE:") + len("[READ_FILE:")
+                end = response.index("]", start)
+                filepath = response[start:end].strip()
+
+                print(f"📖 Tuesday is reading {filepath}...")
                 
-                if "|||" in payload:
-                    filename, content = payload.split("|||", 1)
-                    filename = filename.strip()
-                    content = content.strip()
-                    if content.endswith("]"):
-                        content = content[:-1].strip()
-                    
-                    print(f"✍️ Tuesday is writing to workspace/{filename}...")
-                    
-                    tool_output = write_file(filename, content)
-                    
-                    memory.add("user", f"TOOL OUTPUT:\n{tool_output}")
-                    history = memory.get_context()
-                    followup = "I executed the tool. Read the TOOL OUTPUT above and confirm to the user naturally."
-                    response = llm_client.chat(
-                        message=followup,
-                        history=history,
-                        system_prompt=system_prompt,
-                    )
+                tool_output = read_file(filepath)
+                
+                memory.add("user", f"TOOL OUTPUT:\n{tool_output}")
+                history = memory.get_context()
+                followup = "I executed the tool. Read the TOOL OUTPUT above and answer the user naturally."
+                response = llm_client.chat(
+                    message=followup,
+                    history=history,
+                    system_prompt=system_prompt,
+                )
 
             # Final answer
             memory.add("assistant", response)
