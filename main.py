@@ -16,6 +16,7 @@ from tools.git_inspector import get_latest_commit
 from tools.web_search import search_web
 from tools.file_writer import write_file
 from tools.file_reader import read_file
+from tools.terminal_executor import run_command
 
 
 def load_system_prompt() -> str:
@@ -157,6 +158,27 @@ def main():
                 memory.add("user", f"TOOL OUTPUT:\n{tool_output}")
                 history = memory.get_context()
                 followup = "I executed the tool. Read the TOOL OUTPUT above and answer the user naturally."
+                response = llm_client.chat(
+                    message=followup,
+                    history=history,
+                    system_prompt=system_prompt,
+                )
+
+            # Terminal Executor ReAct loop
+            terminal_match = re.search(
+                r"\[RUN_TERMINAL:\s*(.+?)\]$",
+                response,
+                re.DOTALL,
+            )
+            if terminal_match:
+                command = terminal_match.group(1).strip()
+                print(f"⚡ Tuesday is executing: {command}...")
+                
+                tool_output = run_command(command)
+                
+                memory.add("user", f"TOOL OUTPUT:\n{tool_output}")
+                history = memory.get_context()
+                followup = "I executed the command. Read the TOOL OUTPUT above and answer the user naturally."
                 response = llm_client.chat(
                     message=followup,
                     history=history,
