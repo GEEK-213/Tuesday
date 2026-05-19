@@ -12,7 +12,7 @@ if sys.stdout.encoding != "utf-8":
 from brain.llm_client import LLMClient
 from brain.memory import Memory
 from config.settings import GEMINI_KEYS, DEFAULT_LLM_PROVIDER, DEFAULT_MODEL
-from tools.git_inspector import get_latest_commit
+from tools.git_inspector import inspect_git
 from tools.web_search import search_web
 from tools.file_writer import write_file
 from tools.file_reader import read_file
@@ -75,21 +75,16 @@ def main():
                 system_prompt=system_prompt,
             )
 
-            # Check for Git tool trigger (ReAct loop)
             if "[INSPECT_GIT]" in response:
-                print("⚙️ Tuesday is inspecting the repository...")
-                
-                # Execute tool and save result
-                tool_output = get_latest_commit()
-                
-                # Add JSON to memory as user message
+                print("🔍 Tuesday is scanning the Git tree...")
+
+                tool_output = inspect_git()
+
                 memory.add("user", f"TOOL OUTPUT:\n{tool_output}")
-                
-                # Call LLM a second time so it reads the JSON
                 history = memory.get_context()
-                second_prompt = "I executed the tool. Read the TOOL OUTPUT above and answer the user naturally."
+                followup = "I executed the tool. Read the TOOL OUTPUT above and answer the user naturally."
                 response = llm_client.chat(
-                    message=second_prompt,
+                    message=followup,
                     history=history,
                     system_prompt=system_prompt,
                 )

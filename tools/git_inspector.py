@@ -1,36 +1,41 @@
-"""Tuesday — Git Inspector Tool. Reads the latest commit message via subprocess."""
+"""Tuesday — Git Inspector Tool. Reads git status and diff via subprocess."""
 
 import subprocess
 import json
 
 
-def get_latest_commit() -> str:
-    """Run `git log -1` and return the result as a JSON string."""
+def inspect_git() -> str:
+    """Run `git status -s` and `git diff`, return results as a JSON string."""
     try:
-        result = subprocess.run(
-            ["git", "log", "-1", "--pretty=format:%s"],
+        status_result = subprocess.run(
+            "git status -s",
+            shell=True,
             capture_output=True,
             text=True,
+            encoding="utf-8",
             timeout=10,
         )
 
-        if result.returncode != 0:
-            return json.dumps({
-                "status": "error",
-                "message": result.stderr.strip() or "Git command failed",
-            }, indent=2)
+        diff_result = subprocess.run(
+            "git diff",
+            shell=True,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=10,
+        )
 
-        commit_message = result.stdout.strip()
-
-        if not commit_message:
-            return json.dumps({
-                "status": "success",
-                "last_commit": "(no commits found in this repository)",
-            }, indent=2)
+        for result in (status_result, diff_result):
+            if result.returncode != 0:
+                return json.dumps({
+                    "status": "error",
+                    "message": result.stderr.strip() or "Git command failed",
+                }, indent=2)
 
         return json.dumps({
             "status": "success",
-            "last_commit": commit_message,
+            "git_status": status_result.stdout.strip(),
+            "git_diff": diff_result.stdout.strip(),
         }, indent=2)
 
     except FileNotFoundError:
@@ -55,4 +60,4 @@ def get_latest_commit() -> str:
 if __name__ == "__main__":
     print("🔍 Tuesday Git Inspector")
     print("=" * 40)
-    print(get_latest_commit())
+    print(inspect_git())
