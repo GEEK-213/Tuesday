@@ -46,3 +46,7 @@ TRIGGER EXACTLY: [READ_FILE: filepath.ext]
 [5] THE HANDS (Command Execution):
 If you need to execute a terminal command, run a script, start a build process, or list directory contents:
 TRIGGER EXACTLY: [RUN_TERMINAL: command]
+
+[6] THE BROWSER (UI Vision):
+If the Boss asks you to check a webpage, inspect localhost, or see if a UI is rendering correctly:
+TRIGGER EXACTLY: [INSPECT_WEB: url]
