@@ -18,6 +18,11 @@ from tools.file_writer import write_file
 from tools.file_reader import read_file
 from tools.terminal_executor import run_command
 from tools.web_driver import inspect_url
+from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
+
+console = Console()
 
 
 def load_system_prompt() -> str:
@@ -187,9 +192,38 @@ def main():
             )
             if web_match:
                 url = web_match.group(1).strip()
-                print(f"🌐 Tuesday is navigating to {url}...")
+                console.print(f"\n[bold cyan]🌐 Tuesday is opening browser → [underline]{url}[/underline][/bold cyan]")
 
                 tool_output = inspect_url(url)
+
+                # Rich display of browser results in terminal
+                try:
+                    import json as _json
+                    result = _json.loads(tool_output)
+                    if result.get("status") == "success":
+                        title = result.get("title", "No title")
+                        screenshot = result.get("screenshot")
+                        content_preview = result.get("content", "")[:300]
+
+                        panel_content = f"[bold white]{title}[/bold white]\n"
+                        if screenshot:
+                            panel_content += f"[dim]📸 Screenshot saved: {screenshot}[/dim]\n"
+                        panel_content += f"\n[dim]{content_preview}...[/dim]"
+
+                        console.print(Panel(
+                            panel_content,
+                            title="[bold green]✅ Page Captured[/bold green]",
+                            border_style="green",
+                            padding=(1, 2),
+                        ))
+                    else:
+                        console.print(Panel(
+                            f"[bold red]{result.get('message', 'Unknown error')}[/bold red]",
+                            title="[bold red]❌ Browser Error[/bold red]",
+                            border_style="red",
+                        ))
+                except Exception:
+                    pass
 
                 memory.add("user", f"TOOL OUTPUT:\n{tool_output}")
                 history = memory.get_context()

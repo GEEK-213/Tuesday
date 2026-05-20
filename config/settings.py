@@ -27,3 +27,10 @@ for i in range(1, 6):
     key = os.getenv(f"GEMINI_KEY_{i}")
     if key and not key.startswith("your-"):
         GEMINI_KEYS.append(key)
+
+# ---- Browser (Web Driver) ----
+BROWSER_HEADLESS = os.getenv("BROWSER_HEADLESS", "false").lower() == "true"
+BROWSER_TARGET_MONITOR = int(os.getenv("BROWSER_TARGET_MONITOR", "2"))  # 1-indexed
+BROWSER_VIEW_DELAY = float(os.getenv("BROWSER_VIEW_DELAY", "3.0"))     # seconds to keep visible
+BROWSER_SCREENSHOT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "screenshots")
+

@@ -7,3 +7,5 @@ groq>=1.2.0                # Groq API client (lightning-fast inference)
 requests>=2.31.0           # HTTP requests (used for local Ollama/Qwen calls)
 rich>=13.7.0               # Beautiful terminal output
 ddgs>=9.0.0                # Free web search via DuckDuckGo (formerly duckduckgo-search)
+playwright>=1.40.0         # Browser automation (headless & visible)
+screeninfo>=0.8.1          # Multi-monitor detection for browser placement
